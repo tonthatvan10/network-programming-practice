@@ -1,67 +1,129 @@
+import javax.swing.*;
+import java.awt.*;
 import java.io.*;
 import java.net.*;
 
-public class Server {
-    public static void main(String[] args) {
-        int port = 8888;
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
-            System.out.println("Server đang đợi kết nối tại cổng " + port + "...");
-            
-            while (true) {
-                try (Socket socket = serverSocket.accept();
-                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
-                    
-                    System.out.println("Client đã kết nối!");
-                    String input = in.readLine(); // Nhận chuỗi từ Client
-                    
-                    if (input != null) {
-                        // 1. Đảo ngược chuỗi
-                        String reversed = new StringBuilder(input).reverse().toString();
-                        // 2. In hoa
-                        String upper = input.toUpperCase();
-                        // 3. In thường
-                        String lower = input.toLowerCase();
-                        // 4. Vừa hoa vừa thường (Ví dụ: hElLo)
-                        String mixed = mixCase(input);
-                        // 5. Đếm từ và nguyên âm
-                        String stats = countStats(input);
+public class Server extends JFrame {
+    private JTextArea txtLog;
+    private static int clientCount = 0;
 
-                        // Gửi trả kết quả cho Client (ngăn cách bằng dấu xuống dòng hoặc ký tự đặc biệt)
-                        out.println("--- KẾT QUẢ TỪ SERVER ---");
-                        out.println("Đảo ngược: " + reversed);
-                        out.println("In hoa: " + upper);
-                        out.println("In thường: " + lower);
-                        out.println("Hoa thường: " + mixed);
-                        out.println(stats);
-                    }
-                } catch (IOException e) {
-                    System.out.println("Lỗi kết nối: " + e.getMessage());
+    public Server() {
+        setTitle("SERVER GIÁM SÁT - PORT 43");
+        setSize(500, 400);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        txtLog = new JTextArea();
+        txtLog.setEditable(false);
+        txtLog.setBackground(new Color(25, 25, 25));
+        txtLog.setForeground(Color.WHITE);
+        txtLog.setFont(new Font("Consolas", Font.PLAIN, 14));
+        txtLog.setMargin(new Insets(10, 10, 10, 10));
+
+        add(new JScrollPane(txtLog));
+        setVisible(true);
+
+        startServer();
+    }
+
+    private void startServer() {
+        new Thread(() -> {
+            try (ServerSocket serverSocket = new ServerSocket(43)) {
+                log("Server đang khởi động...");
+                log("Đang lắng nghe kết nối tại cổng 43...");
+
+                while (true) {
+                    Socket socket = serverSocket.accept();
+                    clientCount++;
+                    String clientID = "Máy " + clientCount;
+                    
+                    log(">>> " + clientID + " đã kết nối.");
+                    
+                    new Thread(() -> handleClient(socket, clientID)).start();
                 }
+            } catch (IOException e) {
+                log("Lỗi Server: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    private void handleClient(Socket socket, String clientID) {
+        try (DataInputStream dis = new DataInputStream(socket.getInputStream());
+             DataOutputStream dos = new DataOutputStream(socket.getOutputStream())) {
+
+            dos.writeUTF(clientID);
+            dos.flush();
+
+            while (true) {
+                String input = dis.readUTF();
+                
+                log(clientID + ": " + input);
+
+                if (input.equalsIgnoreCase("exit")) break;
+
+                String response = "1. Đảo ngược: " + myReverse(input) + "\n"
+                                + "2. In hoa: " + myToUpperCase(input) + "\n"
+                                + "3. In thường: " + myToLowerCase(input) + "\n"
+                                + "4. Hoa-Thường: " + myMixCase(input) + "\n"
+                                + "5. Thống kê: " + myStatistics(input);
+
+                dos.writeUTF(response);
+                dos.flush();
             }
         } catch (IOException e) {
-            System.err.println("Không thể mở cổng: " + e.getMessage());
+            log("!!! " + clientID + " đã ngắt kết nối.");
         }
     }
 
-    // Hàm đổi chữ vừa hoa vừa thường
-    private static String mixCase(String s) {
-        StringBuilder sb = new StringBuilder();
+    private String myReverse(String s) {
+        String res = "";
+        for (int i = s.length() - 1; i >= 0; i--) res += s.charAt(i);
+        return res;
+    }
+
+    private String myToUpperCase(String s) {
+        char[] c = s.toCharArray();
+        for (int i = 0; i < c.length; i++) 
+            if (c[i] >= 'a' && c[i] <= 'z') c[i] = (char)(c[i] - 32);
+        return new String(c);
+    }
+
+    private String myToLowerCase(String s) {
+        char[] c = s.toCharArray();
+        for (int i = 0; i < c.length; i++) 
+            if (c[i] >= 'A' && c[i] <= 'Z') c[i] = (char)(c[i] + 32);
+        return new String(c);
+    }
+
+    private String myMixCase(String s) {
+        char[] c = s.toCharArray();
+        for (int i = 0; i < c.length; i++) {
+            if (i % 2 == 0) {
+                if (c[i] >= 'a' && c[i] <= 'z') c[i] = (char)(c[i] - 32);
+            } else {
+                if (c[i] >= 'A' && c[i] <= 'Z') c[i] = (char)(c[i] + 32);
+            }
+        }
+        return new String(c);
+    }
+
+    private String myStatistics(String s) {
+        int words = 0, vowels = 0;
+        boolean inWord = false;
         for (int i = 0; i < s.length(); i++) {
-            if (i % 2 == 0) sb.append(Character.toUpperCase(s.charAt(i)));
-            else sb.append(Character.toLowerCase(s.charAt(i)));
+            char ch = s.charAt(i);
+            char low = (ch >= 'A' && ch <= 'Z') ? (char)(ch+32) : ch;
+            if (low == 'a' || low == 'e' || low == 'i' || low == 'o' || low == 'u') vowels++;
+            if (ch != ' ' && ch != '\t') {
+                if (!inWord) { words++; inWord = true; }
+            } else inWord = false;
         }
-        return sb.toString();
+        return "Số từ: " + words + " | Nguyên âm: " + vowels;
     }
 
-    // Hàm đếm số từ và nguyên âm
-    private static String countStats(String s) {
-        int words = s.trim().isEmpty() ? 0 : s.trim().split("\\s+").length;
-        int vowels = 0;
-        String v = "aeiouAEIOU";
-        for (char c : s.toCharArray()) {
-            if (v.indexOf(c) != -1) vowels++;
-        }
-        return "Số từ: " + words + " | Số nguyên âm: " + vowels;
+    private void log(String msg) {
+        SwingUtilities.invokeLater(() -> txtLog.append(msg + "\n"));
     }
+
+    public static void main(String[] args) { new Server(); }
 }
