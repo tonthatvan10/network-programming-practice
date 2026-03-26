@@ -32,10 +32,8 @@ public class ChatClient extends JFrame {
         add(new JScrollPane(txtChat), BorderLayout.CENTER);
         add(pnlBottom, BorderLayout.SOUTH);
 
-        // HIỆN CỬA SỔ TRƯỚC KHI KẾT NỐI
         setVisible(true); 
 
-        // GỌI KẾT NỐI TRONG THREAD RIÊNG ĐỂ KHÔNG TREO UI
         new Thread(() -> connectServer()).start();
 
         btnSend.addActionListener(e -> send());
