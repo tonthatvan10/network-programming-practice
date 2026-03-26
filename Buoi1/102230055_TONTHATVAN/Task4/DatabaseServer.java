@@ -6,7 +6,6 @@ import java.sql.*;
 
 public class DatabaseServer extends JFrame {
     private JTextArea txtLog;
-    // Đảm bảo thông tin này khớp với MySQL Workbench
     private String dbUrl = "jdbc:mysql://localhost:3306/QuanLySinhVien";
     private String dbUser = "root";
     private String dbPass = "Tonthatvan0406@"; 
@@ -53,7 +52,6 @@ public class DatabaseServer extends JFrame {
                 if (query.equalsIgnoreCase("exit")) break;
                 log("Thực thi SQL: " + query);
 
-                // Mở kết nối Database cho mỗi lần truy vấn để đảm bảo không bị timeout
                 try (Connection conn = DriverManager.getConnection(dbUrl, dbUser, dbPass)) {
                     Statement stmt = conn.createStatement();
                     
@@ -92,7 +90,6 @@ public class DatabaseServer extends JFrame {
     }
 
     public static void main(String[] args) {
-        // ÉP JAVA NẠP DRIVER TỪ THƯ VIỆN
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
         } catch (ClassNotFoundException e) {
