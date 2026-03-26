@@ -8,38 +8,36 @@ public class ChatClient extends JFrame {
     private JTextArea txtChat;
     private DataOutputStream dos;
     private DataInputStream dis;
-    private String myName = "";
+    private String myName = "Đang kết nối...";
 
     public ChatClient() {
+        setTitle("Chat Room");
         setSize(450, 500);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
         setLayout(new BorderLayout(5, 5));
 
         txtChat = new JTextArea();
         txtChat.setEditable(false);
         txtChat.setLineWrap(true);
-        txtChat.setWrapStyleWord(true);
         txtChat.setFont(new Font("Arial", Font.PLAIN, 14));
-        txtChat.setMargin(new Insets(5, 5, 5, 5));
-
+        
         txtInput = new JTextField();
-        txtInput.setFont(new Font("Arial", Font.PLAIN, 14));
         JButton btnSend = new JButton("Gửi");
 
         JPanel pnlBottom = new JPanel(new BorderLayout(5, 5));
-        pnlBottom.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         pnlBottom.add(txtInput, BorderLayout.CENTER);
         pnlBottom.add(btnSend, BorderLayout.EAST);
 
         add(new JScrollPane(txtChat), BorderLayout.CENTER);
         add(pnlBottom, BorderLayout.SOUTH);
 
-        connectServer();
+        setVisible(true); 
+
+        new Thread(() -> connectServer()).start();
 
         btnSend.addActionListener(e -> send());
         txtInput.addActionListener(e -> send());
-
-        setVisible(true);
     }
 
     private void connectServer() {
@@ -48,45 +46,38 @@ public class ChatClient extends JFrame {
             dis = new DataInputStream(socket.getInputStream());
             dos = new DataOutputStream(socket.getOutputStream());
 
-            // Nhận tên định danh từ Server
             myName = dis.readUTF();
-            setTitle("Chat Room - " + myName);
+            SwingUtilities.invokeLater(() -> setTitle("Chat Room - " + myName));
 
-            // Luồng lắng nghe tin nhắn từ Server
-            new Thread(() -> {
-                try {
-                    while (true) {
-                        String msg = dis.readUTF();
-                        txtChat.append(msg + "\n");
-                        // Tự động cuộn xuống tin mới nhất
-                        txtChat.setCaretPosition(txtChat.getDocument().getLength());
-                    }
-                } catch (IOException e) {
-                    txtChat.append(">> Mất kết nối tới Server.\n");
-                }
-            }).start();
-
+            while (true) {
+                String msg = dis.readUTF();
+                SwingUtilities.invokeLater(() -> {
+                    txtChat.append(msg + "\n");
+                    txtChat.setCaretPosition(txtChat.getDocument().getLength());
+                });
+            }
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "Không thể kết nối Server!");
-            System.exit(0);
+            SwingUtilities.invokeLater(() -> {
+                txtChat.append(">> LỖI: Không thể kết nối Server (Port 6000)!\n");
+                JOptionPane.showMessageDialog(this, "Hãy bật Server trước!");
+            });
         }
     }
 
     private void send() {
         try {
             String msg = txtInput.getText().trim();
-            if (!msg.isEmpty()) {
+            if (!msg.isEmpty() && dos != null) {
                 dos.writeUTF(msg);
                 dos.flush();
                 txtInput.setText("");
             }
         } catch (IOException e) {
-            txtChat.append(">> Không thể gửi tin nhắn.\n");
+            txtChat.append(">> Mất kết nối, không thể gửi.\n");
         }
     }
 
     public static void main(String[] args) {
-        try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch (Exception e) {}
-        new ChatClient();
+        SwingUtilities.invokeLater(() -> new ChatClient());
     }
 }

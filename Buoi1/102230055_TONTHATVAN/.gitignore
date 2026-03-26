@@ -1,0 +1,15 @@
+# Loại bỏ toàn bộ thư mục thư viện
+libs/
+*.jar
+
+# Loại bỏ các file đã biên dịch (Binary)
+*.class
+
+# Loại bỏ các file cấu hình của IDE (VS Code)
+.vscode/
+.project
+.classpath
+.settings/
+
+# Loại bỏ các file tạm hoặc log
+*.log

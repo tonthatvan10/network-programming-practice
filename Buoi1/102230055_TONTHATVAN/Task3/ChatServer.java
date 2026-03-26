@@ -55,14 +55,12 @@ public class ChatServer extends JFrame {
         SwingUtilities.invokeLater(() -> txtLog.append(msg + "\n"));
     }
 
-    // Gửi tin nhắn đến tất cả mọi người
     public static synchronized void broadcast(String msg, ClientHandler sender) {
         for (ClientHandler client : clients) {
             client.sendMessage(msg);
         }
     }
 
-    // Xử lý khi một client rời đi
     public static synchronized void removeClient(ClientHandler client) {
         clients.remove(client);
     }
@@ -79,7 +77,6 @@ public class ChatServer extends JFrame {
                 this.name = name;
                 this.dis = new DataInputStream(socket.getInputStream());
                 this.dos = new DataOutputStream(socket.getOutputStream());
-                // Gửi tên định danh cho Client ngay khi kết nối
                 dos.writeUTF(name);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -105,7 +102,6 @@ public class ChatServer extends JFrame {
                     broadcast(name + ": " + msg, this);
                 }
             } catch (IOException e) {
-                // Kết nối bị ngắt đột ngột
             } finally {
                 removeClient(this);
                 log("!!! " + name + " đã rời phòng.");
